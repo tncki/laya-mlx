@@ -14,7 +14,6 @@ import tomllib
 from importlib import import_module
 from importlib.util import find_spec
 from pathlib import Path
-from re import escape
 
 import pytest
 
@@ -216,10 +215,15 @@ def test_ci_does_not_test_a_python_below_the_floor(project):
 
 
 def test_ci_installs_the_extras_the_test_suite_needs(project):
-    # The suite imports the reference model behind an importorskip and the demo extras behind
-    # skips, so CI must install at least dev; those extras must also stay declared.
+    # The suite imports the reference model behind an importorskip, and the demo and serve suites
+    # behind skips, so CI must install those extras or those tests silently stop covering anything.
+    # Parsed rather than matched as a literal list, so adding an extra cannot break the check.
     workflow = read(Path(".github", "workflows", "ci.yml"))
     extras = project["optional-dependencies"]
-    assert re.search(escape("[dev,reference,demo]"), workflow)
-    for extra in ("dev", "reference", "demo", "benchmark"):
+    install = re.search(r"pip install -e '\.\[([^\]]+)\]'", workflow)
+    assert install, "CI must install the project with its extras"
+    installed = {part.strip() for part in install.group(1).split(",")}
+    for extra in ("dev", "reference", "demo", "serve"):
+        assert extra in installed, f"CI does not install the {extra} extra"
+    for extra in ("dev", "reference", "demo", "serve", "benchmark"):
         assert extras.get(extra), f"the {extra} extra disappeared from pyproject.toml"

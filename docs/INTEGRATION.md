@@ -41,7 +41,7 @@ into a JSON parser.
 
 The same names work on the full CLI: `laya-mlx predict --preset guard --state "..."`.
 
-## Two ways to route, with very different costs
+## Three ways to route, with very different costs
 
 Measured on an Apple M2 Pro with the multilingual checkpoint, per call:
 
@@ -49,6 +49,7 @@ Measured on an Apple M2 Pro with the multilingual checkpoint, per call:
 | --- | --- | --- |
 | `detect_language` / `detect_script` (pure Python) | **0.36 s**, of which 0.35 s is `import mlx`; the analysis itself is ~10 ms | script and language, so "which language is this" routing |
 | `laya-decide --preset router` | **1.3 s**, of which ~1.2 s is loading the checkpoint and ~95 ms is the decision | `difficulty`, `domain`, `needs_tools`, `is_sensitive` |
+| `POST /v1/systemone` to `laya-serve` | **77 ms** measured, checkpoint resident | the same, without paying the load per request |
 
 So a language/script rule needs no model at all:
 
@@ -60,10 +61,10 @@ print('multilingual' if not d['is_english'] else 'english', d['script'], d['lang
 "
 ```
 
-Anything that needs the model pays the load on **every process start**. That is fine for a tool an
-agent consults occasionally and wrong for a router on the request path. The fix is a long-lived
-process: either keep laya in-process in your own service, or ask for the HTTP service to be ported
-upstream (`serve.py`) so the checkpoint stays resident and each request costs ~95 ms instead.
+Anything that needs the model pays the load on **every process start**, which is fine for a tool an
+agent consults occasionally and wrong for a router on the request path. `laya-serve` is the fix:
+the checkpoint stays resident and each request costs ~77 ms, measured on eight consecutive calls
+(76–78 ms).
 
 ## Wiring it into a shell-capable harness
 
@@ -104,6 +105,72 @@ fi
 
 `--device cpu` is deliberate for a server or harness: it keeps results identical to the validation
 runs and avoids competing with anything else using the GPU.
+
+## The resident HTTP service
+
+`laya-decide` spawns a process per call, so it reloads the checkpoint every time — 1.3 s, of which
+about 1.2 s is loading. `laya-serve` keeps the checkpoint resident and answers in **77 ms**
+(measured, eight consecutive requests). Use it when laya is on the request path rather than
+consulted occasionally.
+
+It speaks TypeSafe Jev's `/v1/systemone` wire protocol, matching upstream's server: a client
+written against Jev can point its `baseUrl` at this and keep working.
+
+**Start it** (needs the `serve` extra: `pip install 'laya-mlx[serve]'`):
+
+```bash
+HF_HOME=/Users/jack/workspace/.hf-cache \
+LAYA_MODEL_DIR=/Users/jack/workspace/laya-mlx/models \
+LAYA_MODELS=multilingual LAYA_DEVICE=cpu LAYA_PORT=8123 \
+/Users/jack/workspace/.venvs/laya-mlx/bin/laya-serve
+```
+
+**Check it, then use it:**
+
+```bash
+curl -s http://127.0.0.1:8123/health
+# {"status":"ok","loaded":["multilingual"],"device":"cpu"}
+
+curl -s -X POST http://127.0.0.1:8123/v1/systemone \
+  -H 'content-type: application/json' \
+  -d '{"state": {"message": "发票4411被重复扣款，请今天退款。"},
+       "questions": {"dept": {"type": "choice", "instructions": "Which team?",
+                              "criteria": {"billing": "refunds", "technical": "bugs"}}}}'
+```
+
+The response is the usual payload — `answers` (each with `confidence` and `answer_confidence`) plus
+`usage`. A `model` field in the request may name a checkpoint (`english`, `multilingual`,
+`typed-decisions`, or a published id such as `aac6fef/laya-multilingual-mlx`); anything else, such
+as a Jev model id, is ignored and the router auto-selects.
+
+| Environment variable | Meaning | Default |
+| --- | --- | --- |
+| `LAYA_HOST` | bind address | `127.0.0.1` |
+| `LAYA_PORT` | bind port | `8000` |
+| `LAYA_MODEL_DIR` | directory of converted checkpoints to serve from disk (`<dir>/<name>`) | unset: Hub |
+| `LAYA_MODELS` | comma list to preload (`english,multilingual,typed-decisions`); empty = all | all |
+| `LAYA_PRELOAD` | build the checkpoints at startup rather than lazily | `1` |
+| `LAYA_DEVICE` | MLX device (`cpu` or `gpu`) | auto |
+| `LAYA_AUTO_TASK` | auto-route to the typed-decisions checkpoint | `0` |
+| `LAYA_API_KEY` | if set, require `Authorization: Bearer <key>` | none |
+| `LAYA_LOG_LEVEL` | uvicorn log level | `info` |
+| `LAYA_THREADS` | accepted and ignored — it caps torch threads and this runs on MLX | n/a |
+
+Requests are capped before tokenization: at most 64 questions, 50 000 state characters and 2 MiB of
+body. `400` means the body was not a JSON object with a `questions` field, `401` a bad bearer
+token, `413` a request over a cap, `422` a question that cannot be answered (the message names the
+question), `500` an inference failure with no internal detail leaked.
+
+### Three deliberate differences from upstream's server
+
+- **`LAYA_HOST` defaults to `127.0.0.1`, not `0.0.0.0`.** Binding every interface publishes a
+  decision endpoint to the whole network, and without `LAYA_API_KEY` it is unauthenticated. Serving
+  a LAN is an explicit `LAYA_HOST=0.0.0.0` away.
+- **`LAYA_MODEL_DIR` is new.** Upstream can only fetch checkpoints by name from the Hub — for the
+  multilingual checkpoint that is the 1.3 GB PyTorch export. If a converted checkpoint already sits
+  under `models/<name>`, this serves it from disk and stays offline.
+- **`LAYA_THREADS` is accepted but ignored**, and says so with a `RuntimeWarning` at startup rather
+  than silently doing nothing to an unchanged service file.
 
 ## Before you trust it
 

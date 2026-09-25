@@ -37,6 +37,14 @@ what gets answered, and how a request is routed.
   what a shell-based agent harness needs. See [docs/INTEGRATION.md](docs/INTEGRATION.md).
 - `docs/INTEGRATION.md`: the integration contract, the preset reference, and the measured cost of
   each routing approach.
+- **`laya-serve`**, a resident local HTTP service speaking TypeSafe Jev's `/v1/systemone` protocol,
+  ported from upstream's `serve.py` (bumped from `serve` extra: `pip install 'laya-mlx[serve]'`).
+  A process-per-decision caller pays ~1.3 s reloading the checkpoint; with the checkpoint resident
+  the same decision answers in **77 ms** measured over eight consecutive requests. Same paths,
+  status codes, request caps and bearer-token behaviour as upstream, with three documented
+  differences: it binds `127.0.0.1` rather than `0.0.0.0`, it adds `LAYA_MODEL_DIR` so converted
+  checkpoints can be served from disk instead of fetched from the Hub, and `LAYA_THREADS` is
+  accepted but reported as ignored because MLX has no torch-style thread cap.
 
 ### Fixed
 

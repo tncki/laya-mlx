@@ -33,10 +33,12 @@ dev = ["pytest>=8", "ruff>=0.12", "build>=1"]
 reference = ["torch>=2.14,<3", "transformers>=5.17,<6", "safetensors>=0.6"]
 benchmark = ["matplotlib>=3.10", "pyarrow>=18"]
 demo = ["rich>=15,<16", "Pillow>=12,<13"]
+serve = ["fastapi>=0.110", "uvicorn>=0.27"]
 
 [project.scripts]
 laya-mlx = "laya_mlx.cli:main"
 laya-decide = "laya_mlx.cli:decide_main"
+laya-serve = "laya_mlx.serve:main"
 laya-snake = "laya_mlx.snake.cli:main"
 
 [project.urls]

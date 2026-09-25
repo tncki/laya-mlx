@@ -16,3 +16,6 @@ dist/
 .env
 *.log
 artifacts/
+# Local agent-handoff note: a pointer to /Users/jack/workspace/LAYA-HANDOFF.md. Working state
+# for whoever picks this up next, not project documentation, so it stays out of the repository.
+HANDOFF.md

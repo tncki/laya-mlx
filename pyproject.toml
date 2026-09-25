@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "laya-mlx"
-version = "0.2.0"
+version = "0.3.0"
 description = "Native MLX inference for Laya typed decision models on Apple silicon"
 keywords = ["mlx", "laya", "typed-decisions", "decision-model", "local-ai", "apple-silicon"]
 classifiers = [
@@ -12,6 +12,10 @@ classifiers = [
   "Intended Audience :: Developers",
   "Operating System :: MacOS",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 readme = "README.md"
@@ -41,11 +45,19 @@ Documentation = "https://github.com/mizorewww/laya-mlx#readme"
 Issues = "https://github.com/mizorewww/laya-mlx/issues"
 Benchmarks = "https://github.com/mizorewww/laya-mlx/blob/main/BENCHMARKS.md"
 
+# Upstream compatibility. `version` above is laya-mlx's own release line: this package is an
+# independent port, not an official Convai Innovations release. These two fields record which
+# upstream Laya release the port tracks, and tests/test_packaging.py fails if they drift from
+# the commit pinned in .github/workflows/ci.yml or from README.md.
+[tool.laya-mlx]
+upstream-version = "0.3.5"
+upstream-commit = "573e5b62696ba441230cd6be71d593331b5d23af"
+
 [tool.hatch.build.targets.wheel]
 packages = ["laya_mlx"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/laya_mlx", "/pyproject.toml", "/README.md", "/LICENSE", "/NOTICE"]
+include = ["/laya_mlx", "/pyproject.toml", "/README.md", "/CHANGELOG.md", "/LICENSE", "/NOTICE"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

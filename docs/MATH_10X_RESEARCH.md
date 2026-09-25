@@ -16,6 +16,8 @@ These are the existing synchronized, warm end-to-end medians, including preparat
 
 Sources: [Laya FP16](../benchmarks/results/laya-mlx-float16.json), [multilingual FP16](../benchmarks/results/laya-multilingual-mlx-float16.json), [typed-decisions FP16](../benchmarks/results/laya-typed-decisions-mlx-float16.json). Short padded lengths are 93/91/93; long lengths are 512/1024/1024. Comparing their long rows does not hold token length constant. The target is a further improvement over native MLX FP16, not over PyTorch MPS FP32.
 
+> **Baseline correction.** These baselines are the superseded figures described in [PERFORMANCE_RESEARCH.md](PERFORMANCE_RESEARCH.md): the committed FP16 files give Laya short-1 17.746 ms, multilingual 10.907 ms, and typed-decisions 16.172 ms. Each absolute 10× target above is therefore correspondingly larger than stated. The Amdahl condition below and the spectral bounds in §5 are derived from measured time fractions and the checkpoint weight matrices, not from these baselines, so they are unaffected; re-derive any absolute target from [BENCHMARKS.md](../BENCHMARKS.md).
+
 For any proposed optimization, let `f` be its **measured fraction of end-to-end wall time** and `s` its own acceleration. Amdahl's law gives:
 
 ```text

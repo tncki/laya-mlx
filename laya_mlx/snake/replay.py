@@ -9,9 +9,7 @@ import subprocess
 from bisect import bisect_right
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
-
-from .ui import BG, DIM, MUTED, compose
+from .deps import require_palette, require_pillow
 
 
 def load_record(path):
@@ -37,6 +35,10 @@ def load_record(path):
 
 class TerminalRaster:
     def __init__(self, columns, rows, *, width=1920, height=1080, font=None):
+        Image, ImageDraw, ImageFont = require_pillow()
+        BG, DIM, MUTED = require_palette()
+        self._image = Image
+        self._draw = ImageDraw
         choices = (
             [Path(font)]
             if font
@@ -80,8 +82,8 @@ class TerminalRaster:
     def glyph(self, character, color):
         key = character, color
         if key not in self.cache:
-            glyph = Image.new("RGBA", (self.cw, self.ch), (0, 0, 0, 0))
-            draw = ImageDraw.Draw(glyph)
+            glyph = self._image.new("RGBA", (self.cw, self.ch), (0, 0, 0, 0))
+            draw = self._draw.Draw(glyph)
             if character == "█":
                 draw.rectangle((0, 0, self.cw, self.ch), fill=color)
             elif character == "▀":
@@ -145,6 +147,11 @@ def main(argv=None):
         parser.error("--output must end in .mp4 or .png")
     if args.gif and args.gif.exists():
         parser.error("GIF output already exists; choose a new filename")
+    if args.gif and args.output.suffix != ".mp4":
+        # A GIF is a re-encode of the rendered MP4, so a still output would silently drop it.
+        parser.error("--gif is encoded from the MP4; use an .mp4 --output or drop --gif")
+    if args.gif and args.gif.suffix.lower() != ".gif":
+        parser.error("--gif must end in .gif")
     metadata, frames = load_record(args.recording)
     times = [f["at"] for f in frames]
     start = max(times[0], args.start)
@@ -153,6 +160,8 @@ def main(argv=None):
         parser.error("Requested interval is outside the recording")
 
     def canvas_at(t):
+        from .ui import compose
+
         entry = frames[max(0, bisect_right(times, t) - 1)]
         return compose(entry["game"], entry["decision"], {**entry["stats"], "replay": True})
 
@@ -163,6 +172,7 @@ def main(argv=None):
     args.output.parent.mkdir(parents=True, exist_ok=True)
     if args.output.suffix == ".png":
         raster.render(canvas).save(args.output)
+        write_sidecar(args, metadata, start=start, end=start, kind="still")
         print(args.output)
         return 0
     ffmpeg = shutil.which("ffmpeg")
@@ -236,21 +246,53 @@ def main(argv=None):
             ],
             check=True,
         )
+    write_sidecar(
+        args,
+        metadata,
+        start=start,
+        end=start + count / args.fps,
+        kind="video",
+        frames=count,
+        gif_seconds=min(args.gif_seconds, count / args.fps) if args.gif else None,
+    )
+    print(json.dumps({"video": str(args.output), "seconds": count / args.fps, "playback_speed": 1}))
+    return 0
+
+
+def write_sidecar(args, metadata, *, start, end, kind, frames=1, gif_seconds=None):
+    """Record export provenance next to the artifact.
+
+    Both output kinds get one: a still frame is as much a claim about a real run as a video is,
+    and the published GIF/MP4 sidecar is what makes the clip checkable against its recording.
+    """
+    note = (
+        "Rendered from real inference records using the live terminal layout. Original wall-clock "
+        "timing; no fabricated probabilities or time compression."
+    )
+    note += (
+        " Video is sampled at its stated frame rate."
+        if kind == "video"
+        else " Single still frame at the stated source offset; nothing is interpolated."
+    )
     sidecar = {
+        "output_kind": kind,
         "source_recording": args.recording.name,
         "source_sha256": hashlib.sha256(args.recording.read_bytes()).hexdigest(),
         "model": metadata["model"],
         "playback_speed": 1,
         "source_start_seconds": start,
-        "source_end_seconds": start + count / args.fps,
-        "video_fps": args.fps,
-        "video_frames": count,
-        "gif_seconds": min(args.gif_seconds, count / args.fps) if args.gif else None,
+        "source_end_seconds": end,
+        "video_fps": args.fps if kind == "video" else None,
+        "video_frames": frames,
+        "gif_seconds": gif_seconds,
         "renderer_source_sha256": hashlib.sha256(
             Path(__file__).read_bytes() + Path(__file__).with_name("ui.py").read_bytes()
         ).hexdigest(),
-        "note": "Rendered from real inference records using the live terminal layout. Original wall-clock timing; no fabricated probabilities or time compression. Video is sampled at its stated frame rate.",
+        "note": note,
     }
     args.output.with_suffix(".json").write_text(json.dumps(sidecar, indent=2) + "\n")
-    print(json.dumps({"video": str(args.output), "seconds": count / args.fps, "playback_speed": 1}))
-    return 0
+    return sidecar
+
+
+if __name__ == "__main__":  # pragma: no cover - module entry point
+    raise SystemExit(main())

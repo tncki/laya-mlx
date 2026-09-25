@@ -239,7 +239,26 @@ python -m benchmarks.report
 
 Run GPU measurements sequentially. Unit tests use small random models and include direct comparisons with Transformers and the pinned upstream decision head. Real checkpoint validation tests tokenization, logits, calibrated probabilities, repeated outputs and active memory growth. The benchmark runs each backend/checkpoint in a fresh process and stores every timing sample in [benchmarks/results](https://github.com/mizorewww/laya-mlx/blob/main/benchmarks/results). The [full report](https://github.com/mizorewww/laya-mlx/blob/main/BENCHMARKS.md) explains the timing boundaries and precision differences.
 
+`.[dev]` alone is enough for the suite. Tests that need a real checkpoint are marked `integration`
+and **skip unless the weights are already in the local Hugging Face cache** — they never download
+during a normal run, so `pytest -q` stays fast and offline. Fetch the weights and run them
+explicitly when you want that coverage:
+
+```bash
+hf download aac6fef/laya-multilingual-mlx
+pytest -m integration
+```
+
 GitHub Actions runs small-model CPU tests on a macOS arm64 runner. Full checkpoint GPU benchmarks are measured locally and are not part of hosted CI.
+
+## Versioning and upstream compatibility
+
+`laya-mlx` is an independent port, so it keeps its own release line (`laya_mlx.__version__`). The
+upstream Laya release it tracks is recorded separately in `[tool.laya-mlx]` in `pyproject.toml`,
+exposed as `laya_mlx.UPSTREAM_VERSION` and `laya_mlx.UPSTREAM_COMMIT`, and pinned in CI. This
+release tracks upstream **v0.3.5** at commit `573e5b62696ba441230cd6be71d593331b5d23af`; the test
+suite fails if that pin, the README, and the package constants ever disagree. Changes are recorded
+in [CHANGELOG.md](https://github.com/mizorewww/laya-mlx/blob/main/CHANGELOG.md).
 
 ## Performance research
 

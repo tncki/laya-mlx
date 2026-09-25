@@ -12,12 +12,9 @@ from contextlib import nullcontext
 from datetime import datetime, timezone
 from pathlib import Path
 
-from rich.console import Console
-from rich.live import Live
-
+from .deps import require_rich
 from .game import SnakeGame
 from .policy import LayaPolicy
-from .ui import BG, compose, layout_size
 
 
 class Keyboard:
@@ -94,6 +91,7 @@ def play(argv=None):
         game = SnakeGame(args.width, args.height, args.seed, args.initial_length)
     except ValueError as error:
         parser.error(str(error))
+    Console, Live, BG, compose, layout_size = require_rich()
     console = Console(style=f"on {BG}", highlight=False)
     if not args.headless and not console.is_terminal:
         parser.error("Interactive display needs a TTY. Use --headless for a non-interactive run.")

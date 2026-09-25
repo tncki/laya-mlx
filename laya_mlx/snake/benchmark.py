@@ -8,11 +8,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
-from rich.console import Console
 
+from .deps import require_rich
 from .game import SnakeGame
 from .policy import LayaPolicy
-from .ui import compose
 
 
 def percentiles(values):
@@ -26,6 +25,7 @@ def percentiles(values):
 
 
 def run_episode(policy, *, seed, steps, width, height, fps=None, render=True):
+    Console, _Live, _BG, compose, _layout_size = require_rich()
     game = SnakeGame(width, height, seed)
     buffer = io.StringIO()
     console = Console(

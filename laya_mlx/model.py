@@ -226,9 +226,17 @@ class DecisionModel(nn.Module):
         p = mx.softmax(logits, axis=-1)
         k = mx.maximum(marker_mask.sum(axis=-1), 2).astype(mx.float32)
         entropy = -(p * mx.log(mx.maximum(p, 1e-9))).sum(axis=-1) / mx.log(k)
-        # The public runtime pads to at least two marker slots for one-option choices.
-        top = mx.sort(p, axis=-1)[:, -2:]
-        features = mx.stack([top[:, 1], top[:, 1] - top[:, 0], entropy, k / 255.0], axis=-1)
+        # The public runtime pads to at least two marker slots for one-option choices, but
+        # the model must also stand alone: with a single marker the softmax has one entry,
+        # so the missing second slot is padded with 0.0. That makes the act head's
+        # top1 - top2 gap read as a fully decided 1.0, the same signal it gets for any
+        # other unambiguous choice (upstream parity, laya #96/#103).
+        if p.shape[-1] >= 2:
+            top = mx.sort(p, axis=-1)[:, -2:]
+            top1, top2 = top[:, 1], top[:, 0]
+        else:
+            top1, top2 = p[:, 0], mx.zeros_like(p[:, 0])
+        features = mx.stack([top1, top1 - top2, entropy, k / 255.0], axis=-1)
         pooled = mx.concatenate([h[:, 0].astype(mx.float32), features], axis=-1)
         action = self.act_head(pooled.astype(self.act_head.layers[0].weight.dtype))
         return logits, action.astype(mx.float32)

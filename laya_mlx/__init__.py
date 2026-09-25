@@ -14,7 +14,12 @@ from .presets import (
 from .router import DEFAULT_MODELS, RouteDecision, Router
 from .shortlist import embed_fn_from_agent, predict_shortlist, shortlist_choice
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
+# The upstream Laya release this port tracks. laya-mlx keeps its own release line; these record
+# compatibility, and tests/test_packaging.py keeps them in sync with pyproject.toml, README.md
+# and the commit pinned in CI.
+UPSTREAM_VERSION = "0.3.5"
+UPSTREAM_COMMIT = "573e5b62696ba441230cd6be71d593331b5d23af"
 __all__ = [
     "Agent",
     "RLAgent",
@@ -35,4 +40,6 @@ __all__ = [
     "moderation_questions",
     "router_questions",
     "triage_questions",
+    "UPSTREAM_VERSION",
+    "UPSTREAM_COMMIT",
 ]

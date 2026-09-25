@@ -306,8 +306,13 @@ uncontended runs at matching p95.
 inputs, and on the published short fixtures it would be worth almost nothing (the modeled ceiling
 at 93 tokens is under 0.1%). Promoting it means changing the default inference path, which this
 repository only does behind a passing upstream PyTorch parity gate and broader quality validation.
-That gate needs a checkout of upstream plus PyTorch, neither of which was available in this
-environment, so the result is recorded as a measured, reproducible candidate rather than adopted.
+The gate was unavailable while these runs were made — no upstream checkout, no PyTorch, no network —
+so the result is recorded as a measured, reproducible candidate rather than adopted. The gate has
+since been run on this host and passes: `laya-multilingual` agrees with upstream on **63/63**
+questions in both dtypes (maximum calibrated-probability error 2.1e-6 in FP32 against a 1e-4
+tolerance, and 1.6e-3 in FP16 against 0.02), with 20 finite, deterministic repeated calls per
+dtype. The remaining question for promotion is therefore the product decision — whether an
+opt-in long-input path is worth carrying — rather than whether the change can be verified.
 
 ## Where custom engineering would be worth further investigation
 

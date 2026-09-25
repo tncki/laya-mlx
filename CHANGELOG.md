@@ -56,7 +56,8 @@ Tracks upstream Laya **v0.3.5** (`573e5b62696ba441230cd6be71d593331b5d23af`).
   isolated microbenchmark and paired complete-model runs. 1.10–1.14x end-to-end on 1024-token
   inputs with exact parity (0 logit error, 0 probability error, 16/16 argmax), independently
   replicated. Recorded in `docs/ENGINEERING_10X_RESEARCH.md` as a measured candidate; **not**
-  promoted into the shipped runtime, because the upstream PyTorch parity gate could not be run here.
+  promoted into the shipped runtime, because that is an opt-in product decision, not because it is
+  unverified.
 
 ### Changed
 

@@ -335,6 +335,56 @@ def test_bad_embed_shape_rejected_before_predict():
     assert len(agent.calls) == 0
 
 
+class _TensorLike:
+    """A torch-tensor-like return, without importing torch.
+
+    ``_embeddings`` unwraps ``detach().float().cpu().numpy()`` when the embed_fn returns a
+    framework tensor, so the shortlist is usable with a torch bi-encoder.
+    """
+
+    def __init__(self, array):
+        self._array = np.asarray(array)
+
+    def detach(self):
+        return self
+
+    def float(self):
+        return self
+
+    def cpu(self):
+        return self
+
+    def numpy(self):
+        return self._array
+
+
+def test_tensor_like_embed_return_is_unwrapped():
+    def embed(texts):
+        rows = [[1.0, 0.0] if i <= 1 else [0.0, 1.0] for i in range(len(texts))]
+        return _TensorLike(rows)
+
+    assert shortlist_choice("pay me", {"alpha": None, "beta": None}, embed, k=1) == ["alpha"]
+
+
+def test_shortlist_scores_are_clipped_to_one():
+    # Nearly parallel embeddings whose unclipped cosine rounds above 1.0 (upstream #158).
+    near_q = [669335.6983561065, 421969.494778055, 250162.44798431583]
+    near_d = [669335.6983561061, 421969.4947780549, 250162.44798431598]
+
+    def embed(texts):
+        return [near_q] + [near_d for _ in texts[1:]]
+
+    agent = Recorder()
+    out = predict_shortlist(
+        agent,
+        "pay me",
+        {"intent": {"type": "choice", "criteria": {"alpha": None, "beta": None}}},
+        embed,
+        k=1,
+    )
+    assert out["shortlist"]["intent"]["scores"][0] == 1.0
+
+
 # --------------------------------------------------------------------- MLX encoder mean-pool
 
 
@@ -401,3 +451,40 @@ def test_embed_fn_from_agent_end_to_end_on_a_real_checkpoint(tiny_checkpoint):
     assert out["shortlist"]["intent"]["n"] == 4
     assert len(out["shortlist"]["intent"]["labels"]) == 2
     assert out["answers"]["intent"]["choice"] in out["shortlist"]["intent"]["labels"]
+
+
+# --------------------------------------------------------------------- device refresh (#145)
+
+
+def test_embed_fn_from_agent_refreshes_device_each_call(monkeypatch, tiny_checkpoint):
+    """The closure must read ``agent.device`` per call, not capture it at construction.
+
+    Upstream #145: a callback can outlive ``Agent.system_one``'s GPU-to-CPU fallback, so a
+    device frozen when ``embed_fn_from_agent`` was built sends every later call to the old
+    device. ``mx.stream`` is recorded instead of dispatching, so the test stays on CPU.
+    """
+    import contextlib
+
+    seen = []
+
+    def recording_stream(device):
+        seen.append(device)
+        return contextlib.nullcontext()
+
+    monkeypatch.setattr(mx, "stream", recording_stream)
+
+    agent = StubAgent()
+    agent.tok = Agent(tiny_checkpoint).tok
+    fn = embed_fn_from_agent(agent, batch_size=2)
+
+    # Agent construction may place tensors; only the embed_fn calls are under test.
+    seen.clear()
+    for device in ("device-a", "device-b", "device-a"):
+        agent.device = device
+        assert fn(["hello", "hello hello"]).shape == (2, 2)
+    assert seen == ["device-a", "device-b", "device-a"]
+
+    # An empty input returns before placement, so it never touches the stream.
+    seen.clear()
+    assert fn([]).shape == (0, 2)
+    assert seen == []

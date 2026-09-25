@@ -103,7 +103,7 @@ AG News test split: 256 examples, equal class counts, seed 20260919. This is a s
 uv sync --extra dev --extra reference --extra benchmark --extra demo
 source .venv/bin/activate
 gh repo clone NandhaKishorM/laya .upstream
-git -C .upstream checkout 573e5b62696ba441230cd6be71d593331b5d23af
+git -C .upstream checkout 23a17522aa4942da6cce53a995a275760320b691
 python -m benchmarks.download
 pytest -q
 python -m benchmarks.validate --repeats 100

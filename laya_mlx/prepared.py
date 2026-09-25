@@ -27,6 +27,11 @@ class PrefixCache:
         state_ids = tok(
             serialize_state(state).replace(tok.mask_token, " "), add_special_tokens=False
         )["input_ids"]
+        # A chronological conversation list is serialized newest-last, so right-truncation would
+        # silently drop the newest turn. The uncached path truncates from the left for lists; this
+        # cached path has to match it, or enabling the prefix cache changes the answer for list
+        # states (upstream #224).
+        truncate_left = isinstance(state, list)
         items, internal = [], []
         for qid, definition in questions.items():
             q = agent._to_internal(definition)
@@ -50,7 +55,10 @@ class PrefixCache:
             self.entries.move_to_end(key)
             prefix = self.entries[key]
             room = max(0, max_len - len(prefix.ids) - 1)
-            ids = (list(prefix.ids) + state_ids[:room] + [tok.sep_token_id])[:max_len]
+            state_slice = (
+                state_ids[max(0, len(state_ids) - room) :] if truncate_left else state_ids[:room]
+            )
+            ids = (list(prefix.ids) + state_slice + [tok.sep_token_id])[:max_len]
             markers = [m for m in prefix.markers if m < max_len]
             if len(markers) != len(options):
                 raise ValueError(f"Question {qid!r} has too many options for the token budget")

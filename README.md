@@ -141,7 +141,7 @@ print(result["answers"])
 
 The default precision is FP16. Use `dtype="float32"` for closer numerical agreement. Probabilities can differ slightly across precisions even when the selected label agrees; see the measured errors in [BENCHMARKS.md](https://github.com/mizorewww/laya-mlx/blob/main/BENCHMARKS.md). BF16 can be requested but is not part of the published validation matrix.
 
-Following upstream v0.3.5, fitted calibration temperatures are clamped to `[0.5, 5.0]` before use: the shipped `choice:11+` bucket is 0.1006, which would sharpen logits ~10x and report a coin flip as near-certainty. The checkpoint's raw values remain available as `agent.temperature_raw` and `agent.temperature_by_options_raw`, and a `RuntimeWarning` names every clamped bucket at load.
+Following upstream v0.3.20, fitted calibration temperatures are clamped to `[0.5, 5.0]` before use: the shipped `choice:11+` bucket is 0.1006, which would sharpen logits ~10x and report a coin flip as near-certainty. The checkpoint's raw values remain available as `agent.temperature_raw` and `agent.temperature_by_options_raw`, and a `RuntimeWarning` names every clamped bucket at load.
 
 `batch_size=16` caps the number of questions per forward pass; larger requests are processed in chunks. Increase it when memory allows. `device="gpu"` or `device="cpu"` selects a device explicitly; otherwise MLX's default device is used.
 
@@ -228,7 +228,7 @@ The export contains `model.safetensors`, encoder and agent configurations, token
 uv sync --extra dev --extra reference --extra benchmark --extra demo
 source .venv/bin/activate
 gh repo clone NandhaKishorM/laya .upstream
-git -C .upstream checkout 573e5b62696ba441230cd6be71d593331b5d23af
+git -C .upstream checkout 23a17522aa4942da6cce53a995a275760320b691
 pytest -q
 python -m benchmarks.download
 python -m benchmarks.validate --repeats 100
@@ -256,7 +256,7 @@ GitHub Actions runs small-model CPU tests on a macOS arm64 runner. Full checkpoi
 `laya-mlx` is an independent port, so it keeps its own release line (`laya_mlx.__version__`). The
 upstream Laya release it tracks is recorded separately in `[tool.laya-mlx]` in `pyproject.toml`,
 exposed as `laya_mlx.UPSTREAM_VERSION` and `laya_mlx.UPSTREAM_COMMIT`, and pinned in CI. This
-release tracks upstream **v0.3.5** at commit `573e5b62696ba441230cd6be71d593331b5d23af`; the test
+release tracks upstream **v0.3.20** at commit `23a17522aa4942da6cce53a995a275760320b691`; the test
 suite fails if that pin, the README, and the package constants ever disagree. Changes are recorded
 in [CHANGELOG.md](https://github.com/mizorewww/laya-mlx/blob/main/CHANGELOG.md).
 
@@ -283,4 +283,4 @@ The preparation script checks every exported tensor against its original FP16 so
 
 ## Attribution and license
 
-Apache-2.0; see [LICENSE](https://github.com/mizorewww/laya-mlx/blob/main/LICENSE) and [NOTICE](https://github.com/mizorewww/laya-mlx/blob/main/NOTICE). Laya and its pretrained weights are by Convai Innovations and upstream contributors. Prompt construction, output formatting, language routing, email utilities and presets are adapted from [NandhaKishorM/laya](https://github.com/NandhaKishorM/laya) at commit `573e5b62696ba441230cd6be71d593331b5d23af`. The neural architecture is reimplemented in MLX following Laya and Hugging Face ModernBERT.
+Apache-2.0; see [LICENSE](https://github.com/mizorewww/laya-mlx/blob/main/LICENSE) and [NOTICE](https://github.com/mizorewww/laya-mlx/blob/main/NOTICE). Laya and its pretrained weights are by Convai Innovations and upstream contributors. Prompt construction, output formatting, language routing, email utilities and presets are adapted from [NandhaKishorM/laya](https://github.com/NandhaKishorM/laya) at commit `23a17522aa4942da6cce53a995a275760320b691`. The neural architecture is reimplemented in MLX following Laya and Hugging Face ModernBERT.

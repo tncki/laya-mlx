@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "laya-mlx"
-version = "0.3.0"
+version = "0.4.0"
 description = "Native MLX inference for Laya typed decision models on Apple silicon"
 keywords = ["mlx", "laya", "typed-decisions", "decision-model", "local-ai", "apple-silicon"]
 classifiers = [
@@ -50,8 +50,8 @@ Benchmarks = "https://github.com/mizorewww/laya-mlx/blob/main/BENCHMARKS.md"
 # upstream Laya release the port tracks, and tests/test_packaging.py fails if they drift from
 # the commit pinned in .github/workflows/ci.yml or from README.md.
 [tool.laya-mlx]
-upstream-version = "0.3.5"
-upstream-commit = "573e5b62696ba441230cd6be71d593331b5d23af"
+upstream-version = "0.3.20"
+upstream-commit = "23a17522aa4942da6cce53a995a275760320b691"
 
 [tool.hatch.build.targets.wheel]
 packages = ["laya_mlx"]

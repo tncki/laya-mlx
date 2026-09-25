@@ -36,6 +36,7 @@ demo = ["rich>=15,<16", "Pillow>=12,<13"]
 
 [project.scripts]
 laya-mlx = "laya_mlx.cli:main"
+laya-decide = "laya_mlx.cli:decide_main"
 laya-snake = "laya_mlx.snake.cli:main"
 
 [project.urls]

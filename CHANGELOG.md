@@ -25,6 +25,19 @@ what gets answered, and how a request is routed.
 - `laya-mlx`'s own version moves to 0.4.0; it stays on its own release line and does not reuse
   upstream's number.
 
+### Added
+
+- `laya-mlx predict --preset NAME` answers one of the ready-made question sets (`email`, `guard`,
+  `moderation`, `router`, `triage`) without needing a questions file, matching upstream's CLI
+  (#303). `--state-stdin` reads the state text from stdin.
+- **`laya-decide`**, a second console script meant to be called *by another program*. It reads the
+  request from stdin when given no positional text, prints one JSON object on stdout, and can print
+  a single field with `--field answers.intent.choice` so a caller does not parse a nested payload.
+  Usage errors exit `2` with one sentence on stderr and nothing but the payload on stdout, which is
+  what a shell-based agent harness needs. See [docs/INTEGRATION.md](docs/INTEGRATION.md).
+- `docs/INTEGRATION.md`: the integration contract, the preset reference, and the measured cost of
+  each routing approach.
+
 ### Fixed
 
 Behaviour fixes ported from upstream and verified against upstream's own tests for each module,

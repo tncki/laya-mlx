@@ -1,13 +1,40 @@
+import hashlib
+import importlib.util
 import json
 import random
 import socket
+import subprocess
+import sys
 from collections import deque
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from laya_mlx.snake.game import DIRECTIONS, SnakeGame, hamiltonian_cycle
 from laya_mlx.snake.policy import LayaPolicy, local_checkpoint
+
+MONOSPACE_FONTS = (
+    Path("/System/Library/Fonts/Menlo.ttc"),
+    Path("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"),
+)
+
+# Rasterizing needs Pillow and rich (the `demo` extra) plus a monospace font. Record validation
+# and sidecar writing deliberately need none of that, so only the render tests carry this.
+requires_renderer = pytest.mark.skipif(
+    importlib.util.find_spec("PIL") is None
+    or importlib.util.find_spec("rich") is None
+    or not any(font.is_file() for font in MONOSPACE_FONTS),
+    reason="rendering needs the demo extra (Pillow and rich) and a monospace font",
+)
+
+
+def _recording(name):
+    return Path(__file__).parents[1] / "benchmarks/results" / name
+
+
+def _sha256(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 @pytest.mark.parametrize("width,height", [(4, 4), (4, 5), (5, 4), (24, 16)])
@@ -147,7 +174,7 @@ def test_recording_preserves_actual_timestamps_and_probabilities(tmp_path):
 def test_published_real_showcase_replays_every_board_and_action_exactly(filename):
     from laya_mlx.snake.replay import load_record
 
-    path = Path(__file__).parents[1] / "benchmarks/results" / filename
+    path = _recording(filename)
     metadata, frames = load_record(path)
     settings = metadata["settings"]
     game = SnakeGame(
@@ -171,3 +198,173 @@ def test_published_real_showcase_replays_every_board_and_action_exactly(filename
     assert end["game"] == game.snapshot()
     assert end["summary"]["steps"] == end["summary"]["inference_calls"] == len(frames)
     assert end["summary"]["interventions"] == interventions
+
+
+@requires_renderer
+def test_replay_raster_paints_a_real_recorded_frame():
+    from laya_mlx.snake.replay import TerminalRaster, load_record
+    from laya_mlx.snake.ui import compose
+
+    _, frames = load_record(_recording("snake-fast.jsonl"))
+    entry = frames[0]
+    canvas = compose(entry["game"], entry["decision"], {**entry["stats"], "replay": True})
+    raster = TerminalRaster(canvas.width, canvas.height, width=640, height=480)
+    image = raster.render(canvas)
+    assert image.size == (640, 480)
+    # Board, chrome and glyphs must actually be painted, not left as flat background.
+    assert len(image.getcolors(maxcolors=1 << 24)) > 4
+
+
+def test_still_export_sidecar_records_its_source_frame(tmp_path):
+    # A still is as much a claim about a real run as a video is, so it carries the same
+    # provenance: the recording hash, the exact source offset and the renderer fingerprint.
+    from laya_mlx.snake.replay import write_sidecar
+
+    recording = _recording("snake-fast.jsonl")
+    output = tmp_path / "frame.png"
+    args = SimpleNamespace(recording=recording, output=output, fps=30)
+    sidecar = write_sidecar(args, {"model": {"name": "m"}}, start=1.0, end=1.0, kind="still")
+
+    assert sidecar["output_kind"] == "still"
+    assert sidecar["source_sha256"] == _sha256(recording)
+    assert sidecar["source_start_seconds"] == sidecar["source_end_seconds"] == 1.0
+    assert sidecar["video_frames"] == 1
+    assert sidecar["video_fps"] is None
+    assert sidecar["gif_seconds"] is None
+    assert sidecar["renderer_source_sha256"]
+    assert "interpolated" in sidecar["note"]
+    assert "frame rate" not in sidecar["note"]
+    assert json.loads((tmp_path / "frame.json").read_text()) == sidecar
+
+
+def test_video_export_sidecar_records_rate_frames_and_gif(tmp_path):
+    # No ffmpeg needed: this pins the video schema that the published clip sidecar uses.
+    from laya_mlx.snake.replay import write_sidecar
+
+    recording = _recording("snake-showcase.jsonl")
+    output = tmp_path / "clip.mp4"
+    args = SimpleNamespace(recording=recording, output=output, fps=30)
+    sidecar = write_sidecar(
+        args,
+        {"model": {"name": "m"}},
+        start=65.0,
+        end=95.0,
+        kind="video",
+        frames=900,
+        gif_seconds=15,
+    )
+
+    assert sidecar["output_kind"] == "video"
+    assert sidecar["source_sha256"] == _sha256(recording)
+    assert (sidecar["source_start_seconds"], sidecar["source_end_seconds"]) == (65.0, 95.0)
+    assert sidecar["video_fps"] == 30
+    assert sidecar["video_frames"] == 900
+    assert sidecar["gif_seconds"] == 15
+    assert "sampled at its stated frame rate" in sidecar["note"]
+    assert (tmp_path / "clip.json").exists()
+
+
+@pytest.mark.parametrize(
+    "output, gif, message",
+    [
+        ("poster.png", "clip.gif", "encoded from the MP4"),
+        ("clip.mp4", "clip.txt", "must end in .gif"),
+    ],
+)
+def test_gif_export_rejects_an_impossible_combination(tmp_path, capsys, output, gif, message):
+    # Both of these used to be accepted silently: a still output dropped the GIF entirely and
+    # still exited 0, and the GIF path was never checked for being a file ffmpeg can write.
+    from laya_mlx.snake.replay import main
+
+    with pytest.raises(SystemExit) as exit_info:
+        main(
+            [
+                str(_recording("snake-fast.jsonl")),
+                "--output",
+                str(tmp_path / output),
+                "--gif",
+                str(tmp_path / gif),
+            ]
+        )
+    assert exit_info.value.code == 2
+    assert message in capsys.readouterr().err
+    assert not (tmp_path / gif).exists()
+
+
+BLOCKED_DEMO_EXTRAS = """
+import importlib.abc
+import sys
+
+
+class Blocker(importlib.abc.MetaPathFinder):
+    def find_spec(self, name, path=None, target=None):
+        if name.split(".")[0] in {"rich", "PIL"}:
+            raise ModuleNotFoundError(f"blocked: {name}")
+        return None
+
+
+sys.meta_path.insert(0, Blocker())
+from laya_mlx.snake.cli import main
+
+for argv in (["--help"], ["benchmark", "--help"], ["export", "--help"]):
+    try:
+        main(argv)
+    except SystemExit as exit_info:
+        assert exit_info.code == 0, (argv, exit_info.code)
+    print("PARSED", " ".join(argv))
+"""
+
+
+def test_snake_entry_points_parse_arguments_without_the_demo_extra():
+    # `pip install laya-mlx` installs the `laya-snake` console script but not the demo extra it
+    # needs to draw. Importing the CLI used to raise a bare ModuleNotFoundError, so even
+    # `laya-snake --help` failed with a traceback.
+    result = subprocess.run(
+        [sys.executable, "-c", BLOCKED_DEMO_EXTRAS],
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).parents[1],
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.count("PARSED") == 3, result.stdout
+
+
+def test_replay_module_is_runnable_as_a_module():
+    # `python -m laya_mlx.snake.replay` used to define its functions and exit 0 silently,
+    # because the module had no `__main__` guard.
+    result = subprocess.run(
+        [sys.executable, "-m", "laya_mlx.snake.replay", "--help"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "usage" in result.stdout.lower()
+
+
+@requires_renderer
+def test_png_export_writes_a_sidecar_next_to_the_image(tmp_path):
+    from laya_mlx.snake.replay import main
+
+    output = tmp_path / "frame.png"
+    recording = _recording("snake-fast.jsonl")
+    assert (
+        main(
+            [
+                str(recording),
+                "--output",
+                str(output),
+                "--start",
+                "1",
+                "--width",
+                "640",
+                "--height",
+                "480",
+            ]
+        )
+        == 0
+    )
+    assert output.stat().st_size > 0
+    sidecar = json.loads(output.with_suffix(".json").read_text())
+    assert sidecar["output_kind"] == "still"
+    assert sidecar["source_sha256"] == _sha256(recording)
+    assert sidecar["source_start_seconds"] == 1.0

@@ -31,6 +31,16 @@ def main():
     parser.add_argument(
         "--metal", action="store_true", help="Compare custom FP16 GELU/gate instead of head pruning"
     )
+    parser.add_argument(
+        "--local-blocked",
+        default="",
+        help="comma-separated block sizes adding exact local-blocked candidates (no other change)",
+    )
+    parser.add_argument(
+        "--local-blocked-compiled",
+        default="",
+        help="comma-separated block sizes adding mx.compile(local-blocked) candidates",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     agent = ExperimentalAgent(Path("models") / args.model, dtype="float16", batch_size=64)
@@ -54,6 +64,16 @@ def main():
             "metal": other.model,
             "metal-compiled": mx.compile(other.model),
         }
+    if args.local_blocked or args.local_blocked_compiled:
+        from .local_blocked import blocked_local_model
+
+        models = {}
+        for block in (int(v) for v in args.local_blocked.split(",") if v):
+            models[block], _ = blocked_local_model(agent, block=block)
+            functions[f"local-blocked-{block}"] = models[block]
+        for block in (int(v) for v in args.local_blocked_compiled.split(",") if v):
+            models.setdefault(block, blocked_local_model(agent, block=block)[0])
+            functions[f"local-blocked-{block}-compiled"] = mx.compile(models[block])
     report = {
         "environment": environment(),
         "model": args.model,

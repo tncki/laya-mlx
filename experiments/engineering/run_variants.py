@@ -206,7 +206,14 @@ def main():
             "selected-compiled",
             "selected-full-attention",
             "metal-compiled",
+            "local-blocked",
         ],
+    )
+    parser.add_argument(
+        "--block",
+        type=int,
+        default=128,
+        help="query block size for --variant local-blocked (exact, experiment only)",
     )
     parser.add_argument("--iterations", type=int, default=20)
     parser.add_argument("--warmup", type=int, default=5)
@@ -265,6 +272,13 @@ def main():
         for layer in agent.model.encoder.layers:
             layer.mlp = MetalMLP(layer.mlp)
         agent.infer = mx.compile(agent.model)
+    elif args.variant == "local-blocked":
+        # Experiment only: exact block-tiled sliding attention on a weight-sharing
+        # module graph; the eager model is left untouched and is still the parity
+        # reference (``expected`` above was captured before this branch).
+        from .local_blocked import blocked_local_model
+
+        agent.infer, _ = blocked_local_model(agent, block=args.block)
     elif args.variant == "blocks":
         agent.model.encoder.layers = [CompiledLayer(layer) for layer in agent.model.encoder.layers]
         agent.model.head.layers = [CompiledLayer(layer) for layer in agent.model.head.layers]

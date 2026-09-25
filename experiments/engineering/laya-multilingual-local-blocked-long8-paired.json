@@ -1,0 +1,981 @@
+{
+  "environment": {
+    "cpu": "Apple M2 Pro",
+    "unified_memory_bytes": 17179869184,
+    "machine": "arm64",
+    "os": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "python": "3.13.12",
+    "packages": {
+      "mlx": "0.32.2",
+      "mlx-metal": "0.32.2",
+      "numpy": "2.5.3",
+      "tokenizers": "0.23.2",
+      "huggingface-hub": "1.32.0"
+    },
+    "source_sha256": "52bac3023a2c3efc1ee831fc312c4161c859dd42f4f7c9f658dc84c71c254ff3",
+    "upstream_revision": "573e5b62696ba441230cd6be71d593331b5d23af"
+  },
+  "model": "laya-multilingual",
+  "iterations": 16,
+  "method": "cyclic candidate order within each round, changing actual state every round, same prepared tensor inputs per candidate; no cache or deduplication",
+  "results": [
+    {
+      "case": "long8",
+      "shape": [
+        8,
+        1024
+      ],
+      "unique_questions_per_request": 8,
+      "distinct_input_batches": 16,
+      "input_sha256": [
+        "9d8860597d6418b27b4d8b132f7f5bb774480186a977efd27fd74d1d5a59642d",
+        "6c8bab4aa74ebafa61d83f0522bc9f40c4ba37a9b3a075bd27528591f6b432d7",
+        "4b2f554b97c257843e336e3eaa908f026b2ebf94133bbba3c881c976ac91127e",
+        "964d394dd3f40b07635bd2be60a0f71b66e0b92151fb1ad005c234e7b5cd88d8",
+        "fccec853bad61ba4a7a1cdfb08da522ad294ad08ada7ff20facb041fe04ff4dc",
+        "e190a53c25fdc797d46361d0179b9d1ea340ed92815b48f06b62ce62f408a4f5",
+        "3c9cc2051304fab85a84f8f0679a96597ef42023347ff0b15f69891132379d6e",
+        "135aa600fdf0f2a969dac8062e2ddfe3e69b3a3501dca453f5f0872edf064134",
+        "3878e1730f686dcee8194eaba03f0c35073d7b3c68ab24125953002528572df8",
+        "7b95e4ff82182fef845a8ae37e94bf4b8f371c4fff7edeb329d1730710de725b",
+        "82d9accb87db9b000a59a488760143be80f53e5a987916d1b02d58eed67a247b",
+        "fe06eb9fe346dd2b3d32d3cdc71eec46ba7a7d1ca8b3075e20b7cd83e56e684f",
+        "d268abf3c461985580d13cbb125451ddb3f03a07989e9b432b2458e9ba9a47d5",
+        "6a03e20676f03e5977f2fbfb5dc7414791a7c63c8efda635a8e4d6e7aae8f62a",
+        "db9e79b4c8650085a46336804e51b29cf564100393c5bd06ddf69b525328d905",
+        "1d3c5394bc6a8ed8227e7e856c62e19e77df2793fe7807907b8076b6b55aefda"
+      ],
+      "candidates": {
+        "eager": {
+          "forward": {
+            "samples_ms": [
+              671.014917,
+              680.510833,
+              678.458417,
+              668.61975,
+              678.325875,
+              679.597,
+              678.630583,
+              678.706541,
+              678.451375,
+              670.25025,
+              673.073458,
+              680.414958,
+              679.682042,
+              680.059334,
+              680.117791,
+              680.045792
+            ],
+            "p50_ms": 678.6685620000001,
+            "p95_ms": 680.43892675
+          },
+          "end_to_end": {
+            "samples_ms": [
+              697.984125,
+              699.053834,
+              698.141667,
+              697.414042,
+              689.456625,
+              700.813041,
+              699.261,
+              700.067709,
+              699.029959,
+              688.326083,
+              699.621542,
+              699.490083,
+              697.5925,
+              701.298125,
+              707.447792,
+              694.193875
+            ],
+            "p50_ms": 699.0418965,
+            "p95_ms": 702.8355417500001
+          }
+        },
+        "compiled": {
+          "forward": {
+            "samples_ms": [
+              669.349167,
+              671.421792,
+              660.824083,
+              672.124708,
+              673.542125,
+              671.804292,
+              660.474333,
+              671.306875,
+              658.6995,
+              671.48825,
+              671.196625,
+              672.094916,
+              664.388542,
+              662.78775,
+              671.077,
+              660.84075
+            ],
+            "p50_ms": 671.1368125,
+            "p95_ms": 672.4790622500001
+          },
+          "end_to_end": {
+            "samples_ms": [
+              690.67,
+              681.364167,
+              688.728292,
+              685.571041,
+              692.295042,
+              692.383125,
+              680.499833,
+              691.788417,
+              682.418875,
+              691.924583,
+              689.918458,
+              689.581833,
+              681.943834,
+              691.973833,
+              686.4395,
+              692.49625
+            ],
+            "p50_ms": 689.7501454999999,
+            "p95_ms": 692.41140625
+          }
+        },
+        "selected-compiled": {
+          "forward": {
+            "samples_ms": [
+              645.796083,
+              644.819083,
+              641.871042,
+              644.067583,
+              643.960167,
+              633.183542,
+              646.997916,
+              644.984833,
+              643.816959,
+              646.210167,
+              644.277334,
+              639.527583,
+              641.3,
+              645.415833,
+              644.800375,
+              645.591083
+            ],
+            "p50_ms": 644.5388545000001,
+            "p95_ms": 646.40710425
+          },
+          "end_to_end": {
+            "samples_ms": [
+              655.810417,
+              663.875167,
+              665.284667,
+              665.322417,
+              663.84325,
+              655.899375,
+              664.993583,
+              666.803875,
+              665.879208,
+              665.573208,
+              665.799166,
+              655.218084,
+              664.899834,
+              666.13275,
+              661.084209,
+              662.958583
+            ],
+            "p50_ms": 664.9467085,
+            "p95_ms": 666.30053125
+          }
+        },
+        "selected-full-attention": {
+          "forward": {
+            "samples_ms": [
+              651.010292,
+              646.103833,
+              646.019834,
+              652.707,
+              640.584625,
+              652.01,
+              652.506625,
+              652.161334,
+              640.431875,
+              652.217375,
+              645.836625,
+              647.535041,
+              650.315916,
+              652.667416,
+              652.805792,
+              640.761583
+            ],
+            "p50_ms": 650.663104,
+            "p95_ms": 652.731698
+          },
+          "end_to_end": {
+            "samples_ms": [
+              674.125958,
+              669.264625,
+              670.05775,
+              666.444417,
+              665.879292,
+              674.415375,
+              672.423792,
+              671.644334,
+              662.029375,
+              673.484,
+              661.364125,
+              672.152875,
+              673.139334,
+              668.618166,
+              667.060584,
+              672.354875
+            ],
+            "p50_ms": 670.851042,
+            "p95_ms": 674.19831225
+          }
+        },
+        "local-blocked-128": {
+          "forward": {
+            "samples_ms": [
+              600.078667,
+              602.402042,
+              606.945917,
+              606.287541,
+              608.39575,
+              607.59075,
+              606.675375,
+              596.917666,
+              608.60875,
+              609.177625,
+              606.769875,
+              607.762333,
+              606.604542,
+              607.499917,
+              596.78725,
+              608.496959
+            ],
+            "p50_ms": 606.857896,
+            "p95_ms": 608.75096875
+          },
+          "end_to_end": {
+            "samples_ms": [
+              629.132667,
+              626.536209,
+              615.471458,
+              629.527875,
+              627.717417,
+              627.021583,
+              624.5885,
+              615.397667,
+              627.613959,
+              625.299084,
+              627.228,
+              626.870667,
+              624.86725,
+              620.485333,
+              627.562458,
+              628.539666
+            ],
+            "p50_ms": 626.9461249999999,
+            "p95_ms": 629.231469
+          }
+        },
+        "local-blocked-128-compiled": {
+          "forward": {
+            "samples_ms": [
+              595.350708,
+              601.293167,
+              600.17175,
+              599.561875,
+              588.531375,
+              600.202834,
+              588.921333,
+              599.180916,
+              599.394833,
+              598.703792,
+              593.700625,
+              595.37825,
+              597.092583,
+              588.521458,
+              599.727833,
+              598.232209
+            ],
+            "p50_ms": 598.4680005,
+            "p95_ms": 600.4754172500001
+          },
+          "end_to_end": {
+            "samples_ms": [
+              629.098083,
+              611.708833,
+              618.511459,
+              616.541458,
+              617.323,
+              620.228,
+              607.612,
+              620.596167,
+              620.767375,
+              619.180083,
+              608.42625,
+              625.595375,
+              611.744459,
+              621.271,
+              617.1555,
+              613.597083
+            ],
+            "p50_ms": 617.9172295,
+            "p95_ms": 626.471052
+          }
+        }
+      },
+      "parity": {
+        "compiled": [
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          }
+        ],
+        "selected-compiled": [
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.000244140625,
+            "max_action_logit_error": 1.0,
+            "max_probability_error": 6.101989552775855e-05,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0001220703125,
+            "max_action_logit_error": 1.0,
+            "max_probability_error": 1.7632367160930196e-05,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 1.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0002288818359375,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 3.1699535640472565e-05,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0009765625,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0001868138568029143,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.000244140625,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 4.7509808170254075e-05,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.00048828125,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 8.159485214054296e-05,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0001220703125,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 2.2461374643373277e-05,
+            "argmax_agree": 8,
+            "questions": 8
+          }
+        ],
+        "selected-full-attention": [
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.000244140625,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 6.101989552775855e-05,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.00048828125,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 7.956300908890102e-05,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          }
+        ],
+        "local-blocked-128": [
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          }
+        ],
+        "local-blocked-128-compiled": [
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          },
+          {
+            "finite": true,
+            "max_logit_error": 0.0,
+            "max_action_logit_error": 0.0,
+            "max_probability_error": 0.0,
+            "argmax_agree": 8,
+            "questions": 8
+          }
+        ]
+      }
+    }
+  ],
+  "experiment_sha256": "8c6374cc4410ed919d6cab56032835bf4b4745d8b135b8785e566254580ae874"
+}

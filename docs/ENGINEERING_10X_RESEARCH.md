@@ -244,6 +244,71 @@ the custom kernel as a general performance improvement. Sources:
 [English Metal paired data](../experiments/engineering/laya-metal-paired.json) and
 [multilingual Metal paired data](../experiments/engineering/laya-multilingual-metal-paired.json).
 
+## Block-tiled exact local attention: built and measured
+
+The source review proposed a local-window kernel and the math report bounded it, but neither had a
+measurement. This section reports one, built as a **pure-MLX Python prototype** rather than a Metal
+kernel, because the arithmetic saving does not require custom hardware code.
+
+**Mechanism.** `laya_mlx/model.py::attention_masks` builds one dense `[B, 1, L, L]` boolean sliding
+mask (`|i - j| <= local_attention // 2`, inclusive) and passes it to
+`mx.fast.scaled_dot_product_attention` over the full length in every sliding layer. For a query
+block `[start, stop)` the only unmasked keys lie in `[start - half, stop + half)`, so slicing K/V
+and the mask to that overlap performs the same computation over fewer keys. The prototype takes the
+shipped dense mask as its single source of truth and slices it, so mask semantics come from the
+existing code rather than a reimplementation.
+
+**Isolated operator.** Bit-identical to dense masked SDPA (`max_abs_diff` exactly 0.0) in all 12
+measured configurations, with speedups from 0.99x (512 tokens, 12 heads, block 64) to 2.29x (1024
+tokens, 16 heads, block 128). The win is length- and shape-dependent: at 1024 tokens the
+multilingual head shape measured 1.66x / 1.86x / 1.82x for block 64 / 128 / 256. This is an
+operator-level ratio, not device throughput.
+
+**Complete model, paired.** Candidates run in cyclic order within each round over identical prepared
+tensors, with a changing state every round, so each round yields a paired ratio; the interval is a
+20,000-sample bootstrap of the per-round median ratio (`experiments/engineering/paired.py`).
+
+| Case | Candidate | Paired median | 95% CI |
+| --- | --- | ---: | ---: |
+| long1 (1x1024) | local-blocked-128 | **1.104** | 1.095–1.112 |
+| long1 (1x1024) | local-blocked-128-compiled | **1.136** | 1.130–1.141 |
+| long8 (8x1024) | local-blocked-128 | **1.112** | 1.105–1.119 |
+| long8 (8x1024) | local-blocked-128-compiled | **1.126** | 1.123–1.129 |
+| long8 (8x1024) | local-blocked-64 | **1.119** | 1.110–1.123 |
+
+An independent 16-round replication of long8 reproduced the ratio within 0.4% (1.116, CI
+1.109–1.122) with a matching eager median (699.0 ms vs 693.9 ms). Block size is a real trade-off
+rather than a free parameter: block 64 is the best measured choice at long8 and the worst at long1
+(1.089, below the 1.10 bar), while block 256 never reaches it.
+
+**Parity.** Every `local-blocked` candidate matched eager exactly on both workloads: 16/16 argmax
+agreement, maximum logit error 0, maximum calibrated-probability error 0. On the same inputs the
+already-published `selected-full-attention` candidate measured 4.9e-4 logit and 8.0e-5 probability
+error, so block tiling is not the weaker approximation here.
+
+**Known qualification.** The dense mask grants padded *query* rows every valid key, so an all-masked
+row cannot arise; a sliced row instead sees only its window. Padded rows are never read by
+`DecisionModel` (it pools CLS and the marker positions), and MLX SDPA returns finite values for
+all-masked rows rather than NaN, so this changed no measured output. It does mean the transform is
+not bit-exact by construction for every padding layout: the isolated operator showed ~1e-6 logit
+differences for some shapes, and a batch whose padding exceeded the half-window would exercise the
+difference. Both real workloads above pad narrowly and measured exactly zero error.
+
+**Host and scope.** These runs are on an Apple M2 Pro (16 GB, applegpu_g14s); every latency table
+elsewhere in this report is from the M3 Max. **The absolute times behind the table above are
+therefore not comparable with those tables, and no published figure was edited** — the paired
+ratios are the comparable quantity. Only the multilingual checkpoint was measured, because it is
+the only one present in the local cache and the network is unavailable. A first long8 attempt that
+overlapped another process was discarded after its absolute medians came out ~1.9x higher than the
+uncontended runs at matching p95.
+
+**Why this is still not in the shipped runtime.** It is an exact, measurable ~10–14% win at long
+inputs, and on the published short fixtures it would be worth almost nothing (the modeled ceiling
+at 93 tokens is under 0.1%). Promoting it means changing the default inference path, which this
+repository only does behind a passing upstream PyTorch parity gate and broader quality validation.
+That gate needs a checkout of upstream plus PyTorch, neither of which was available in this
+environment, so the result is recorded as a measured, reproducible candidate rather than adopted.
+
 ## Where custom engineering would be worth further investigation
 
 The model already calls `mx.fast.scaled_dot_product_attention`, `mx.fast.rope`,
@@ -258,9 +323,10 @@ and [math report](MATH_10X_RESEARCH.md) quantify this distinction.
 Useful next projects, with their evidence requirements, are:
 
 - **Long-input window attention:** specialize tile bounds for D64, the actual
-  bidirectional window, and padded batches. Compare against fused dense SDPA at
-  512/1024 tokens and then in the complete model. This kernel has not been built
-  or benchmarked in this report.
+  bidirectional window, and padded batches. A Python prototype of exactly this is
+  now measured above at 1.10–1.14x end to end on 1024-token inputs with exact
+  parity, so the remaining work is not the arithmetic idea but a Metal kernel that
+  beats it, plus the parity gate needed to promote it.
 - **Dense-kernel epilogues and scheduling:** investigate fusing the gated MLP
   epilogue into GEMM or improving short-M matrix scheduling. MLX already uses
   specialized Metal GEMM implementations, so replacing them requires a real
@@ -324,10 +390,27 @@ commands sequentially, never alongside the formal benchmark:
 .venv/bin/python -m experiments.engineering.analyze
 ```
 
+Block-tiled exact local attention, as reported above. It needs a converted checkpoint under
+`models/`; run GPU work serially, because a concurrent process inflated the absolute medians by
+~1.9x in one discarded run.
+
+```bash
+# Isolated operator: dense vs block-tiled SDPA, with bit-exactness checks.
+.venv/bin/python -m experiments.engineering.local_blocked
+
+# Complete model, paired: add the candidates without changing any existing variant.
+.venv/bin/python -m experiments.engineering.paired \
+  --model laya-multilingual --iterations 16 --cases long1,long8 \
+  --local-blocked 128 --local-blocked-compiled 128 \
+  --output experiments/engineering/laya-multilingual-local-blocked-paired.json
+```
+
 All experimental Python files pass Ruff formatting and lint checks. The stable
 runtime, original benchmark results, and published FP16 checkpoints remain the
 release artifacts. Compilation and exact final-head pruning are credible
 **optional future optimizations** after cold-shape/cache policy and broader
 quality validation; the measured gains do not justify silently adding compilation
-latency or a custom kernel to the default path. No 10× speedup, production-ready
-quantized checkpoint, or measured local-window-kernel win is claimed.
+latency or a custom kernel to the default path. Block-tiled exact local attention
+is now measured (1.10–1.14x end to end at 1024 tokens, exact parity) but is not
+adopted for the same reason. No 10× speedup, production-ready quantized
+checkpoint, or hand-written Metal kernel win is claimed.

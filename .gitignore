@@ -1,5 +1,8 @@
 .venv/
-.upstream/
+# The upstream checkout CI clones. No trailing slash: a symlink to an existing checkout
+# (`.upstream -> ../laya`) is not matched by the directory-only pattern and would otherwise
+# be committed as a local absolute path.
+.upstream
 .cache/
 models/
 *.safetensors

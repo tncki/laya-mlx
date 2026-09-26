@@ -9,11 +9,11 @@
   6. 环境变量：HF_HOME=/Users/jack/workspace/.hf-cache
   7. 启用保存即可
 
-首次调用会加载约 800MB 检查点（约 1-2 分钟），之后复用缓存。
+首次调用加载约 800MB 检查点（本地模型约 2 秒，远端首次约 2 分钟），之后复用缓存。
 
-	环境变量：
-	  LAXA_MODEL   模型路径或 HuggingFace 名称（默认本机 models/multilingual）
-	  LAXA_DEVICE  gpu / cpu（默认 gpu）
+        环境变量：
+          LAYA_MODEL   模型路径或 HuggingFace 名称（默认本机 models/multilingual）
+          LAYA_DEVICE  gpu / cpu（默认 gpu）
 """
 
 import json
@@ -32,8 +32,8 @@ _repo_root = Path(__file__).resolve().parent
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-from laya_mlx import presets
-from laya_mlx.agent import Agent
+from laya_mlx import presets  # noqa: E402
+from laya_mlx.agent import Agent  # noqa: E402
 
 # ── 模型路径（优先环境变量，默认本地 multilingual） ────────────
 _MODEL = os.environ.get("LAYA_MODEL", str(_repo_root / "models" / "multilingual"))
@@ -47,8 +47,16 @@ _agent: Agent | None = None
 def _get_agent() -> Agent:
     global _agent
     if _agent is None:
+        model = _MODEL
+        # 本地路径不存在时回退到 HuggingFace（新克隆或清缓存后生效）
+        if not os.path.isdir(model) and model.startswith("aac6fef/"):
+            pass  # HuggingFace 模型 ID，直接传入
+        elif not os.path.isdir(model):
+            fallback = "aac6fef/laya-multilingual-mlx"
+            print(f"[laya-mlx] 本地模型路径不存在: {model}，回落到 {fallback}", file=sys.stderr)
+            model = fallback
         _agent = Agent(
-            _MODEL,
+            model,
             device=_DEVICE,
             dtype="float16",
             batch_size=16,
@@ -115,7 +123,7 @@ def laya_moderation(text: str) -> str:
     "is_sensitive。适合决定该交给强模型还是便宜模型、是否需要工具或人工审核。"
 )
 def laya_router(text: str) -> str:
-    """判断用户请求的业务流向"""
+    """评估请求的难度与属性以决定路由策略"""
     return json.dumps(_decide(text, "router"), ensure_ascii=False)
 
 

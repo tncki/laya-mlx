@@ -9,10 +9,14 @@
   6. 环境变量：HF_HOME=/Users/jack/workspace/.hf-cache
   7. 启用保存即可
 
-首次调用加载约 800MB 检查点（本地模型约 2 秒，远端首次约 2 分钟），之后复用缓存。
+首次调用加载检查点（本地检查点约 0.1-0.5 秒，远端首次约 2 分钟），之后复用缓存。
+
+        检查点选择：默认按输入语言自动路由——英文走 english，中文等非拉丁文字走
+        multilingual。仓库 docs/INTEGRATION.md 已写明 multilingual 在英文任务上更弱，
+        而 english 读不了汉字，所以两边都要挂着，不该把默认钉死成一个。
 
         环境变量：
-          LAYA_MODEL   模型路径或 HuggingFace 名称（默认本机 models/multilingual）
+          LAYA_MODEL   强制使用单一检查点（本地路径或 HuggingFace id），设置后不做语言路由
           LAYA_DEVICE  gpu / cpu（默认 gpu）
 """
 
@@ -32,36 +36,57 @@ _repo_root = Path(__file__).resolve().parent
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-from laya_mlx import presets  # noqa: E402
+from laya_mlx import Router, presets  # noqa: E402
 from laya_mlx.agent import Agent  # noqa: E402
 
-# ── 模型路径（优先环境变量，默认本地 multilingual） ────────────
-_MODEL = os.environ.get("LAYA_MODEL", str(_repo_root / "models" / "multilingual"))
 _DEVICE = os.environ.get("LAYA_DEVICE", "gpu")
+# 设了 LAYA_MODEL 就退回单检查点、不做语言路由（保持旧行为的兼容入口）
+_FORCED = os.environ.get("LAYA_MODEL")
+
+# models/ 在 .gitignore 里，是新克隆或清缓存后的常见缺口；缺失时回落到已转换好的
+# MLX 独立仓库，避免直接抛 FileNotFoundError。
+_FALLBACK = {"english": "aac6fef/laya-mlx", "multilingual": "aac6fef/laya-multilingual-mlx"}
+
+
+def _checkpoint(key: str) -> str:
+    """本地检查点路径，缺失则回落 HuggingFace 并在 stderr 说明。"""
+    local = _repo_root / "models" / key
+    if local.is_dir():
+        return str(local)
+    print(
+        f"[laya-mlx] 本地检查点缺失: {local}，回落到 {_FALLBACK[key]}",
+        file=sys.stderr,
+    )
+    return _FALLBACK[key]
+
+
+def _is_repo_id(value: str) -> bool:
+    """区分 "aac6fef/laya-mlx" 这类 Hub id 和本地路径（含相对路径）。"""
+    return "/" in value and not value.startswith(("/", "~", "."))
 
 
 # ── 引擎（模块级缓存，首次调用后常驻） ──────────────────────────
-_agent: Agent | None = None
+_engine: Agent | Router | None = None
 
 
-def _get_agent() -> Agent:
-    global _agent
-    if _agent is None:
-        model = _MODEL
-        # 本地路径不存在时回退到 HuggingFace（新克隆或清缓存后生效）
-        if not os.path.isdir(model) and model.startswith("aac6fef/"):
-            pass  # HuggingFace 模型 ID，直接传入
-        elif not os.path.isdir(model):
-            fallback = "aac6fef/laya-multilingual-mlx"
-            print(f"[laya-mlx] 本地模型路径不存在: {model}，回落到 {fallback}", file=sys.stderr)
-            model = fallback
-        _agent = Agent(
-            model,
-            device=_DEVICE,
-            dtype="float16",
-            batch_size=16,
-        )
-    return _agent
+def _get_engine() -> Agent | Router:
+    global _engine
+    if _engine is None:
+        if _FORCED:
+            model = _FORCED
+            if not os.path.isdir(model) and not _is_repo_id(model):
+                fallback = _FALLBACK["multilingual"]
+                print(f"[laya-mlx] 本地模型路径不存在: {model}，回落到 {fallback}", file=sys.stderr)
+                model = fallback
+            _engine = Agent(model, device=_DEVICE, dtype="float16", batch_size=16)
+        else:
+            _engine = Router(
+                models={key: _checkpoint(key) for key in _FALLBACK},
+                device=_DEVICE,
+                dtype="float16",
+                max_loaded=2,
+            )
+    return _engine
 
 
 def _decide(text: str, preset_name: str) -> dict:
@@ -72,7 +97,7 @@ def _decide(text: str, preset_name: str) -> dict:
         "moderation": presets.moderation_questions,
         "router": presets.router_questions,
     }[preset_name]
-    return _get_agent().predict(text, questions_fn())
+    return _get_engine().predict(text, questions_fn())
 
 
 # ── MCP 服务器 ────────────────────────────────────────────────────
